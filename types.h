@@ -1,0 +1,28 @@
+#pragma once
+
+#include <cstdint>
+#include <cstdio>
+#include <string>
+
+namespace core {
+    using u8  = uint8_t;
+    using s8  = int8_t;
+    using u16 = uint16_t;
+    using s16 = int16_t;
+    using u32 = uint32_t;
+    using s32 = int32_t;
+}
+
+struct input_file {
+    FILE* fd;
+    std::string path;
+    char last_char;
+    
+    input_file(const std::string& path) : path(path), last_char(0) {
+        fd = fopen(path.c_str(), "r");
+    }
+};
+
+#define is_eof(f) (feof(f.fd))
+
+#include "log.h"

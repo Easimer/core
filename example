@@ -1,0 +1,10 @@
+extern sin(x);
+extern cos(x);
+
+fn fib(0) => 0;
+fn fib(1) => 1;
+fn fib(x) => fib(x - 2) + fib(x - 1);
+
+fn pi(x, y, z) => 3.1415926;
+
+fib(10);
