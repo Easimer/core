@@ -1,0 +1,18 @@
+version(1);
+
+project_name = "core";
+
+patterns = {
+"*.cpp",
+"*.h",
+"*.4coder",
+};
+
+load_paths = {
+{{
+{".", .relative = true},
+}, .os = "win"},
+{{
+{".", .relative = true},
+}, .os = "linux"},
+};
