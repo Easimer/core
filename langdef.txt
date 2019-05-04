@@ -1,0 +1,23 @@
+literal := real | int
+
+type := real | int
+
+variable_name := $name
+
+variable_declaration := variable_name ':' $type
+
+op := + | - | * | /
+
+value := literal | variable_name
+
+binary_op := (value | binary_op) op (value | binary_op)
+
+operation := binary_op | function_call | value
+
+function_call := $function_name '(' [operation [, operation [, operation [...]]]] ')'
+
+expr := binary_op | function_call ';'
+
+function_arguments := [variable_declaration [, variable_declaration [...]]
+
+function := 'fn' $function_name '(' function_arguments ')' ':' $return_type '{' [expr [expr [...]]] '}'

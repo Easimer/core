@@ -1,50 +1,61 @@
-#include "ast.h"
-
+#include <cstdio>
 #include <cstring>
-#include <iostream>
+
+#include "ast.h"
 
 namespace core {
     void ast_real::dump() {
-        std::cerr << "real(" << value << ')' << std::endl;
+        printf("literal(%f)", value);
     }
     
-    void ast_int::dump() {
-        if(is_signed) {
-            std::cerr << "signed(" << value.value_signed << ')' << std::endl;
-        } else {
-            std::cerr << "unsigned(" << value.value_unsigned << ')' << std::endl;
+    ast_identifier::ast_identifier(const char* pszName) {
+        strncpy(name, pszName, 128);
+    }
+    
+    void ast_identifier::dump() {
+        printf("identifier(%s)", name);
+    }
+    
+    void ast_declaration::dump() {
+        printf("declaration(");
+        identifier->dump();
+        printf(" : %s)", type.c_str());
+    }
+    
+    void ast_prototype::dump() {
+        printf("prototype(");
+        name->dump();
+        printf("; ");
+        for(auto& arg : args) {
+            arg.dump();
+            printf(", ");
         }
+        printf(")");
     }
     
-    void ast_var::dump() {
-        std::cerr << "var(" << name << ')' << std::endl;
+    void ast_function::dump() {
+        printf("function(");
+        prototype->dump(); printf(" {\n");
+        for(auto& line : lines) {
+            line->dump(); printf(";\n");
+        }
+        printf("})");
     }
     
     void ast_binary_op::dump() {
-        std::cerr << "binop(";
-        left->dump();
-        std::cerr << ' ' << (int)op << ' ';
-        right->dump();
-        std::cerr << ')' << std::endl;
+        printf("bin_op(%c;", op);
+        if(lhs) lhs->dump();
+        printf(";");
+        if(rhs) rhs->dump();
+        printf(")");
     }
     
-    void ast_fn_call::dump()  {
-        std::cerr << "fncall(" << name->get() << ", ";
+    void ast_function_call::dump() {
+        printf("fncall(");
+        name->dump(); printf("; ");
         for(auto& arg : args) {
-            ast_var* pvar;
-            ast_literal* plit;
-            
-            pvar = dynamic_cast<ast_var*>(arg.get());
-            plit = dynamic_cast<ast_literal*>(arg.get());
-            if(pvar) {
-                pvar->dump();
-            } else if(plit) {
-                plit->dump();
-            } else {
-                std::cerr << "???";
-            }
-            std::cerr << ", ";
+            arg->dump(); printf(", ");
         }
-        std::cerr << ")" << std::endl;
+        printf(")");
     }
 }

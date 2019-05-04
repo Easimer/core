@@ -1,99 +1,77 @@
 #pragma once
 
+#include <vector>
 #include "types.h"
 
-#include <memory>
-#include <string>
-#include <vector>
-
 namespace core {
-    const int max_variable_name_len = 32;
-    
-    enum class ast_operator {
-        invalid = 0,
-        
-        assignment,
-        
-        addition,
-        subtraction,
-        multiplication,
-        division,
-        
-        max,
-    };
-    
-    template<typename T>
-        using ast_ptr = std::unique_ptr<T>;
-    
-    class ast_expr {
+    class ast_expression {
         public:
-        virtual ~ast_expr() {}
+        virtual ~ast_expression() {}
         
         virtual void dump() = 0;
+        virtual void codegen() {};
     };
-    using ast_expr_ptr = ast_ptr<ast_expr>;
     
-    class ast_literal : public ast_expr {};
-    using ast_literal_ptr = ast_ptr<ast_literal>;
+    class ast_literal : public ast_expression {};
     
     class ast_real : public ast_literal {
         public:
-        ast_real(float v) : value(v) {}
         float value;
-        virtual void dump() override;
-    };
-    using ast_real_ptr = ast_ptr<ast_real>;
-    
-    class ast_int : public ast_literal {
-        public:
-        ast_int(s32 v) : is_signed(true) {
-            value.value_signed = v;
-        }
-        
-        ast_int(u32 v) : is_signed(false) {
-            value.value_unsigned = v;
-        }
-        
-        union {
-            s32 value_signed;
-            u32 value_unsigned;
-        } value;
-        bool is_signed;
         
         virtual void dump() override;
     };
-    using ast_int_ptr = ast_ptr<ast_int>;
     
-    class ast_var : public ast_expr {
+    class ast_identifier : public ast_expression {
         public:
         
-        ast_var(const std::string& other) : name(other) {}
-        ast_var(std::string&& other) : name(std::move(other)) {}
+        ast_identifier(const char* pszName);
         
-        const std::string& get() const {
-            return name;
-        }
-        
+        char name[128];
         virtual void dump() override;
-        
-        private:
-        std::string name;
     };
-    using ast_var_ptr = ast_ptr<ast_var>;
     
-    class ast_binary_op : public ast_expr {
-        ast_operator op;
-        ast_expr_ptr left, right;
+    class ast_declaration : public ast_expression {
+        public:
+        
+        up<ast_identifier> identifier;
+        std::string type;
         
         virtual void dump() override;
     };
-    using ast_binary_op_ptr = ast_ptr<ast_binary_op>;
     
-    class ast_fn_call : public ast_expr {
-        ast_var_ptr name;
-        std::vector<ast_expr_ptr> args;
+    class ast_prototype : public ast_expression {
+        public:
+        up<ast_expression> name;
+        std::vector<ast_declaration> args;
         
         virtual void dump() override;
     };
-    using ast_fn_call_ptr = ast_ptr<ast_fn_call>;
+    
+    class ast_function : public ast_expression {
+        public:
+        up<ast_prototype> prototype;
+        std::vector<up<ast_expression>> lines;
+        
+        virtual void dump() override;
+    };
+    
+    class ast_binary_op : public ast_expression {
+        public:
+        
+        ast_binary_op(char op, up<ast_expression> lhs, up<ast_expression> rhs)
+            : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {}
+        
+        char op;
+        up<ast_expression> lhs, rhs;
+        
+        virtual void dump() override;
+    };
+    
+    class ast_function_call : public ast_expression {
+        public:
+        up<ast_identifier> name;
+        std::vector<up<ast_expression>> args;
+        
+        virtual void dump() override;
+    };
 }

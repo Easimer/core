@@ -1,17 +1,16 @@
-CXXFLAGS=-g -std=c++17
+CXXFLAGS=-g -std=c++17 -O0 -fsanitize=address
+LDFLAGS=-lasan
 all: corec
 
-corec: ast.o parser.o main.o lexer.o
-	$(CXX) $(LDFLAGS) -o corec ast.o parser.o main.o lexer.o
+OBJECTS=main.o lexer.o parser.o ast.o
 
-ast.o: ast.cpp ast.h
-	$(CXX) $(CXXFLAGS) -o ast.o -c ast.cpp
+corec: $(OBJECTS)
+	$(CXX) -o corec $(OBJECTS) $(LDFLAGS)
 
-parser.o: parser.cpp parser.h
-	$(CXX) $(CXXFLAGS) -o parser.o -c parser.cpp
+%.o: %.cpp types.h
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
-main.o: main.cpp parser.h ast.h
-	$(CXX) $(CXXFLAGS) -o main.o -c main.cpp
+clean:
+	rm *.o corec
 
-lexer.o: lexer.cpp lexer.h
-	$(CXX) $(CXXFLAGS) -o lexer.o -c lexer.cpp
+.PHONY: clean
