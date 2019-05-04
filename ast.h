@@ -16,7 +16,6 @@
 #include <llvm/IR/Verifier.h>
 
 #include "types.h"
-#include "codegen.h"
 
 #define OVERRIDE_GEN_IR() virtual llvm::Value* generate_ir(llvm_ctx& ctx) override
 

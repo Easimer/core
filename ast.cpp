@@ -326,6 +326,7 @@ namespace core {
             return nullptr;
         }
         
+        // Check equality of the condition and '1'
         pVCond = ctx.builder.CreateICmpEQ(pVCond, ConstantInt::get(ctx.ctx, APInt(1, 1)));
         Function* pFunc = ctx.builder.GetInsertBlock()->getParent();
         
@@ -333,8 +334,10 @@ namespace core {
         BasicBlock* pBBThen = BasicBlock::Create(ctx.ctx, "then", pFunc);
         BasicBlock* pBBElse = BasicBlock::Create(ctx.ctx, "else", pFunc);
         
-        ctx.builder.CreateCondBr(pVCond, pBBThen, pBBElse);
+        // if 'cond' is true go to 'then' otherwise to 'else'
+        auto br = ctx.builder.CreateCondBr(pVCond, pBBThen, pBBElse);
         
+        // Generate 'then' code
         ctx.builder.SetInsertPoint(pBBThen);
         Value* pVThen = line->generate_ir(ctx);
         if(!pVThen) {
@@ -342,12 +345,13 @@ namespace core {
             return nullptr;
         }
         
+        // Unconditional jump to the 'else' block
         ctx.builder.CreateBr(pBBElse);
         pBBThen = ctx.builder.GetInsertBlock();
         
-        pFunc->getBasicBlockList().push_back(pBBElse);
+        //pFunc->getBasicBlockList().push_back(pBBElse);
         ctx.builder.SetInsertPoint(pBBElse);
-        PHINode* pPhi = ctx.builder.CreatePHI(Type::getVoidTy(ctx.ctx), 0);
-        return pPhi;
+        //PHINode* pPhi = ctx.builder.CreatePHI(Type::getVoidTy(ctx.ctx), 0);
+        return br;
     }
 }

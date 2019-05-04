@@ -5,7 +5,7 @@ fn function(x : real, y : real, z : real) : real {
 	a : real = (x + y) * 4.0;
 	b : real = a - z;
 
-	return(a);
+	return(b);
 }
 
 fn function2() : real {
