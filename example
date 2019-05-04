@@ -1,16 +1,9 @@
 extern sin(x : real) : real;
 extern cos(x : real) : real;
 
-fn boolfn(x : bool) : real {
-	if (x) then return(1.0);
-	return(0.0);
-}
-
 fn function(x : real, y : real, z : real) : real {
 	a : real = (x + y) * 4.0;
 	b : real = a - z;
-
-	c : real = b + a;
 
 	return(a);
 }
@@ -18,3 +11,9 @@ fn function(x : real, y : real, z : real) : real {
 fn function2() : real {
 	return  (1.0);
 }
+
+fn boolfn(x : bool) : real {
+	if (x) then return(1.0);
+	return(0.0);
+}
+

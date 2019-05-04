@@ -26,16 +26,21 @@ namespace core {
         max
     };
     
-    using token = std::pair<tok_t, std::string>;
+    struct token {
+        tok_t first;
+        std::string second;
+        int line;
+        int col;
+    };
     
     token get_token(input_file& f);
     
     struct token_stream {
-        tok_t type() {
+        tok_t type() const {
             return c.front().first;
         }
         
-        const std::string& current() {
+        const std::string& current() const {
             return c.front().second;
         }
         
@@ -43,8 +48,16 @@ namespace core {
             c.pop_front();
         }
         
-        bool empty() {
+        bool empty() const {
             return c.size() == 0;
+        }
+        
+        int line() const {
+            return c.front().line;
+        }
+        
+        int col() const {
+            return c.front().col;
         }
         
         std::list<token> c;

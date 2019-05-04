@@ -5,7 +5,7 @@
 #include <string>
 #include <memory>
 
-#define SHOW_BLOCK_MSG 1
+#define SHOW_BLOCK_MSG 0
 
 namespace core {
     using u8  = uint8_t;
@@ -23,7 +23,9 @@ struct input_file {
     std::string path;
     char last_char;
     
-    input_file(const std::string& path) : path(path), last_char(0) {
+    int line, col;
+    
+    input_file(const std::string& path) : path(path), last_char(0), line(0), col(0) {
         fd = fopen(path.c_str(), "r");
     }
 };

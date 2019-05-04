@@ -12,17 +12,25 @@ int main(int argc, char** argv) {
         
         while(!is_eof(f)) {
             t = core::get_token(f);
+            t.line = f.line;
+            t.col = f.col;
             if(t.second.size()) {
-                printf("%s %d\n", t.second.c_str(), (int)t.first);
+                //printf("%s %d\n", t.second.c_str(), (int)t.first);
                 ts.c.push_back(std::move(t));
             }
         }
-        printf("\n");
+        //printf("\n");
+        
+        core::llvm_ctx ctx(argv[1]);
         
         while(!ts.empty()) {
             auto expr = core::parse(ts);
             if(expr) {
-                expr->dump();
+                //expr->dump();
+                auto ir = expr->generate_ir(ctx);
+                if(ir) {
+                    ir->print(llvm::errs());
+                }
             }
         }
     }

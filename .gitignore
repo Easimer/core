@@ -1,2 +1,3 @@
 corec
 *.o
+stdafx.h.pch

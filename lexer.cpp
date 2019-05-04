@@ -10,7 +10,12 @@ namespace core {
         
         // eat whitespace
         while((c == ' ' || c == '\n' || c == '\t') && !is_eof(f)) {
+            if(c == '\n') {
+                f.line++;
+                f.col = 0;
+            }
             c = fgetc(f.fd);
+            f.col++;
         }
         
         if(!is_eof(f)) {
@@ -24,6 +29,7 @@ namespace core {
             while(c != ' ' && buf_len < 4095 && (isalnum(c) || c == '.')) {
                 buf[buf_len++] = c;
                 c = fgetc(f.fd);
+                f.col++;
             }
             buf[buf_len] = 0;
             
