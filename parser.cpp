@@ -135,7 +135,7 @@ namespace core {
             ret->line = line; ret->col = col;
             ts.step(); // Eat paren open
             while(ts.type() != tok_t::paren_close) {
-                auto arg = parse_primary(ts);
+                auto arg = parse_expression(ts);
                 ret->args.push_back(std::move(arg));
                 if(ts.current() == ",") {
                     ts.step();

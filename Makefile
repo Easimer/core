@@ -1,10 +1,11 @@
+CC=clang-7
 CXX=clang++-7
 LLVM_CFG=llvm-config-7
 CXXFLAGS_LLVM := $(shell $(LLVM_CFG) --cxxflags)
-CXXFLAGS=-g -std=c++17 -O0 -fsanitize=address -Wall $(CXXFLAGS_LLVM)
+CXXFLAGS=-g -std=c++17 -O0 -Wall $(CXXFLAGS_LLVM)
 LDFLAGS_LLVM := $(shell $(LLVM_CFG) --ldflags --system-libs --libs core)
-LDFLAGS=-lasan $(LDFLAGS_LLVM)
-all: corec
+LDFLAGS=$(LDFLAGS_LLVM)
+all: corec example.exe
 
 OBJECTS=main.o lexer.o parser.o ast.o log.o
 
@@ -17,7 +18,16 @@ corec: $(OBJECTS)
 stdafx.h.pch: stdafx.h
 	$(CXX) $(CXXFLAGS) -x c++-header stdafx.h -o stdafx.h.pch
 
+corert.o: corert.c
+	$(CC) -o corert.o -c corert.c
+
+example.o: corec
+	./corec -o example.o -c example
+example.exe: corert.o example.o
+	$(CC) -o example.exe corert.o example.o -lc
+
+
 clean:
-	rm *.o corec
+	rm *.o corec example.exe stdafx.h.pch
 
 .PHONY: clean

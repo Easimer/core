@@ -1,19 +1,20 @@
 extern sin(x : real) : real;
 extern cos(x : real) : real;
+extern print(f : real) : real;
+extern printbool(b : bool) : bool;
 
-fn function(x : real, y : real, z : real) : real {
-	a : real = (x + y) * 4.0;
-	b : real = a - z;
+extern eq(l : real, r : real) : bool;
+extern neq(l : real, r : real) : bool;
+extern lnot(b : bool) : bool;
 
-	return(b);
+fn fib(n : real) : real {
+	if(eq(n, 0)) then return(0.0);
+	if(eq(n, 1)) then return(1.0);
+	return(fib(n - 2.0) + fib(n - 1.0));
 }
 
-fn function2() : real {
-	return  (1.0);
-}
-
-fn boolfn(x : bool) : real {
-	if (x) then return(1.0);
-	return(0.0);
+fn main() : bool {
+	print(fib(10));
+	return(true);
 }
 
