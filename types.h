@@ -5,6 +5,8 @@
 #include <string>
 #include <memory>
 
+#define SHOW_BLOCK_MSG 1
+
 namespace core {
     using u8  = uint8_t;
     using s8  = int8_t;

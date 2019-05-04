@@ -21,6 +21,13 @@ namespace core {
         virtual void dump() override;
     };
     
+    class ast_boolean : public ast_literal {
+        public:
+        bool value;
+        
+        virtual void dump() override;
+    };
+    
     class ast_identifier : public ast_expression {
         public:
         
@@ -43,6 +50,7 @@ namespace core {
         public:
         up<ast_expression> name;
         std::vector<ast_declaration> args;
+        up<ast_expression> type;
         
         virtual void dump() override;
     };
@@ -72,6 +80,13 @@ namespace core {
         up<ast_identifier> name;
         std::vector<up<ast_expression>> args;
         
+        virtual void dump() override;
+    };
+    
+    class ast_branching : public ast_expression {
+        public:
+        up<ast_expression> condition;
+        up<ast_expression> line;
         virtual void dump() override;
     };
 }

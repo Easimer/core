@@ -8,6 +8,10 @@ namespace core {
         printf("literal(%f)", value);
     }
     
+    void ast_boolean::dump() {
+        printf("literal(%s)", value ? "true" : "false");
+    }
+    
     ast_identifier::ast_identifier(const char* pszName) {
         strncpy(name, pszName, 128);
     }
@@ -25,6 +29,8 @@ namespace core {
     void ast_prototype::dump() {
         printf("prototype(");
         name->dump();
+        printf("; ");
+        type->dump();
         printf("; ");
         for(auto& arg : args) {
             arg.dump();
@@ -57,5 +63,10 @@ namespace core {
             arg->dump(); printf(", ");
         }
         printf(")");
+    }
+    
+    void ast_branching::dump() {
+        printf("branch(");
+        condition->dump(); printf(" -> "); line->dump(); printf(")");
     }
 }

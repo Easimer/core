@@ -46,6 +46,9 @@ namespace core {
             ret = is_digit_or_point;
         }
         if(!ret) {
+            ret = s == "false" || s == "true";
+        }
+        if(!ret) {
             // TODO: check for other types here
         }
         return ret;
@@ -54,6 +57,8 @@ namespace core {
     static bool is_type(const std::string& s) {
         bool ret = false;
         if(s == "real") {
+            ret = true;
+        } else if(s == "bool") {
             ret = true;
         }
         // TODO: etc.
@@ -87,6 +92,8 @@ namespace core {
             ret = true;
         } else if(s == "/") {
             ret = true;
+        } else if(s == "=") {
+            ret = true;
         }
         
         return ret;
@@ -110,6 +117,10 @@ namespace core {
             return {tok_t::curly_close, s};
         } else if(s == ":") {
             return {tok_t::colon, s};
+        } else if(s == "if") {
+            return {tok_t::cif, s};
+        } else if(s == "then") {
+            return {tok_t::cthen, s};
         } else {
             if(is_literal(s)) {
                 return {tok_t::literal, s};

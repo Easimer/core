@@ -83,6 +83,13 @@ namespace core {
             return ret;
         }
         
+        if(s == "false" || s == "true") {
+            auto ret = std::make_unique<ast_boolean>();
+            ret->value = s == "true";
+            ts.step();
+            return ret;
+        }
+        
         printf("Unknown type of literal encountered: '%s'\n", s.c_str());
         ts.step();
         return nullptr;
@@ -177,12 +184,30 @@ namespace core {
     
     static up<ast_expression> parse_expression(token_stream& ts) {
         block_msg __bpe("parse expression");
-        auto lhs = parse_primary(ts);
-        if(!lhs) {
-            return nullptr;
+        if(ts.type() == tok_t::cif) { // branching
+            block_msg __bpeif("parsing branching");
+            ts.step();
+            auto cond = parse_paren_expr(ts);
+            if(ts.type() != tok_t::cthen) {
+                printf("Expected 'then' after condition in branching, got %d\n", (int)ts.type());
+                return nullptr;
+            }
+            ts.step();
+            auto line = parse_expression(ts);
+            
+            auto ret = std::make_unique<ast_branching>();
+            ret->condition = std::move(cond);
+            ret->line = std::move(line);
+            
+            return ret;
+        } else { // line
+            auto lhs = parse_primary(ts);
+            if(!lhs) {
+                return nullptr;
+            }
+            
+            return parse_binary_operation_rhs(ts, 0, std::move(lhs));
         }
-        
-        return parse_binary_operation_rhs(ts, 0, std::move(lhs));
     }
     
     // TODO: actually implement; this currently just skips the line
@@ -228,11 +253,15 @@ namespace core {
             return nullptr;
         }
         
+        auto& type_str = ts.current();
+        auto type = std::make_unique<ast_identifier>(type_str.c_str());
+        
         ts.step(); // Eat type
         
         ret = std::make_unique<ast_prototype>();
         ret->name = std::move(name);
         ret->args = std::move(args);
+        ret->type = std::move(type);
         
         return ret;
     }

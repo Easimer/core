@@ -1,6 +1,6 @@
-literal := real | int
+literal := real | int | false | true
 
-type := real | int
+type := real | int | bool
 
 variable_name := $name
 
@@ -16,7 +16,11 @@ operation := binary_op | function_call | value
 
 function_call := $function_name '(' [operation [, operation [, operation [...]]]] ')'
 
-expr := binary_op | function_call ';'
+branching := 'if' '(' operation ')' 'then' line
+
+line := operation ';'
+
+expr := branching | line
 
 function_arguments := [variable_declaration [, variable_declaration [...]]
 
