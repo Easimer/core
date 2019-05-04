@@ -11,7 +11,7 @@ namespace core {
             case '-': return 5;
             case '*': return 10;
             case '/': return 10;
-            case '=': return 100;
+            case '=': return 0;
         }
         return -1;
     }
@@ -148,16 +148,17 @@ namespace core {
     static up<ast_expression> parse_binary_operation_rhs(token_stream& ts, int expr_prec, up<ast_expression> lhs) {
         block_msg __bpbor("parse binary operation rhs");
         while(1) {
-            int tok_prec = operator_precedence(ts.current()[0]);
+            char bin_op = ts.current()[0];
+            int tok_prec = operator_precedence(bin_op);
             if(tok_prec < expr_prec) {
                 return lhs;
             }
             
-            char bin_op = ts.current()[0];
             ts.step();
             
             auto rhs = parse_primary(ts);
             if(!rhs) {
+                printf("Expected right hand side of operation\n");
                 return nullptr;
             }
             
