@@ -311,8 +311,6 @@ namespace core {
             return nullptr;
         }
         
-        fprintf(stderr, "New function %s on line %d\n", pszFuncName, prototype->line + 1);
-        
         // DI
         DIFile* pUnit = ctx.dbuilder.createFile(ctx.compile_unit->getFilename(), ctx.compile_unit->getDirectory());
         DIScope* pScope = pUnit;
