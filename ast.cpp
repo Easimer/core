@@ -169,11 +169,9 @@ namespace core {
             }
             
             if(L->getType() != R->getType()) {
-                std::string type_l, type_r;
-                llvm::raw_string_ostream sl(type_l), sr(type_r);
-                L->getType()->print(sl);
-                R->getType()->print(sr);
-                log_err(this, "Type mismatch in binary operation; lhs : %s, rhs : %s\n", sl.str().c_str(), sr.str().c_str());
+                auto sl = type_to_str(L->getType());
+                auto sr = type_to_str(R->getType());
+                log_err(this, "Type mismatch in binary operation; lhs : %s, rhs : %s\n", sl.c_str(), sr.c_str());
                 return ret;
             }
             
@@ -260,11 +258,9 @@ namespace core {
                 auto pTyVArg = pVArg->getType();
                 
                 if(pTyVArg != pTyArg) {
-                    std::string type_f, type_p;
-                    llvm::raw_string_ostream sf(type_f), sp(type_p);
-                    pTyArg->print(sf);
-                    pTyVArg->print(sp);
-                    log_err(this, "Type mismatch in function call: argument %i of %s expects type %s, but was passed a(n) %s\n", iArg, name->name, sf.str().c_str(), sp.str().c_str());
+                    auto sf = type_to_str(pTyArg);
+                    auto sp = type_to_str(pTyVArg);
+                    log_err(this, "Type mismatch in function call: argument %i of %s expects type %s, but was passed a(n) %s\n", iArg, name->name, sf.c_str(), sp.c_str());
                     return ret;
                 }
                 
