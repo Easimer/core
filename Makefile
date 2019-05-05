@@ -24,7 +24,7 @@ corert.o: corert.c
 example.o: example.cor corec
 	./corec -o example.o -c example.cor
 example.exe: corert.o example.o
-	$(CC) -o example.exe corert.o example.o -lc
+	$(CC) -o example.exe corert.o example.o -lc -lm
 
 
 clean:

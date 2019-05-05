@@ -2,7 +2,8 @@
 
 #include <stdio.h>
 
-extern int main(void);
+// Core entry point
+extern int Main(void);
 
 float print(float f) {
 	printf("%f\n", f);
@@ -25,4 +26,8 @@ int neq(float l, float r) {
 
 int lnot(int b) {
 	return b == 1 ? 0 : 1;
+}
+
+int main(int argc, char** argv) {
+	return Main();
 }
