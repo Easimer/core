@@ -21,8 +21,8 @@ stdafx.h.pch: stdafx.h
 corert.o: corert.c
 	$(CC) -o corert.o -c corert.c
 
-example.o: corec
-	./corec -o example.o -c example
+example.o: example.cor corec
+	./corec -o example.o -c example.cor
 example.exe: corert.o example.o
 	$(CC) -o example.exe corert.o example.o -lc
 
