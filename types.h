@@ -19,7 +19,7 @@ namespace core {
 }
 
 struct input_file {
-    FILE* fd;
+    FILE *fd;
     std::string path;
     char last_char;
     
@@ -27,6 +27,12 @@ struct input_file {
     
     input_file(const std::string& path) : path(path), last_char(0), line(0), col(0) {
         fd = fopen(path.c_str(), "r");
+    }
+    
+    ~input_file() {
+        if(fd) {
+            fclose(fd);
+        }
     }
 };
 

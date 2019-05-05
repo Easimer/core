@@ -1,0 +1,13 @@
+# Math
+extern pure sin(x : real) : real;
+extern pure cos(x : real) : real;
+extern pure fmod(x : real, y : real) : real;
+
+# ConIO
+extern pure print(f : real) : real;
+extern pure printbool(b : bool) : bool;
+
+# Boolean logic
+extern pure lnot(b : bool) : bool;
+extern pure land(l : bool, r : bool) : bool;
+extern pure lor(l : bool, r : bool) : bool;

@@ -1,9 +1,10 @@
 #pragma once
 
-#include "types.h"
+#include <cstdio>
 #include <string>
 #include <vector>
 #include <list>
+#include "types.h"
 
 namespace core {
     enum class tok_t {
@@ -34,6 +35,7 @@ namespace core {
     };
     
     token get_token(input_file& f);
+    FILE* preprocess(FILE* f, FILE* tmp = nullptr);
     
     struct token_stream {
         tok_t type() const {
@@ -58,6 +60,10 @@ namespace core {
         
         int col() const {
             return c.front().col;
+        }
+        
+        void add_tokens(std::list<token>& other) {
+            c.splice(c.end(), other);
         }
         
         std::list<token> c;

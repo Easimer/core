@@ -12,6 +12,11 @@ core::token_stream tokenize(const char* pszSource) {
     input_file f(pszSource);
     core::token t;
     
+    auto new_fd = core::preprocess(f.fd);
+    fclose(f.fd);
+    fseek(new_fd, 0, SEEK_SET);
+    f.fd = new_fd;
+    
     while(!is_eof(f)) {
         t = core::get_token(f);
         t.line = f.line;

@@ -1,3 +1,4 @@
+#include <cstdio>
 #include "types.h"
 #include "lexer.h"
 
@@ -113,6 +114,61 @@ namespace core {
         }
         
         return ret;
+    }
+    
+    // TODO: prevent line information corruption
+    FILE* preprocess(FILE* f, FILE* tmp) {
+        if(!tmp) {
+            tmp = tmpfile();
+        }
+        char c;
+        char cmdbuf[32];
+        int cmdidx = 0;
+        char pathbuf[256];
+        int pathidx = 0;
+        
+        while(!feof(f)) {
+            c = fgetc(f);
+            if(c == '#') {
+                cmdidx = 0;
+                pathidx = 0;
+                c = fgetc(f);
+                while(!feof(f) && cmdidx < 31 && c != ' ') {
+                    cmdbuf[cmdidx++] = c;
+                    c = fgetc(f);
+                }
+                cmdbuf[cmdidx] = 0;
+                
+                if(strncmp(cmdbuf, "include", 32) == 0) {
+                    c = fgetc(f);
+                    while(!feof(f) && (c != ' ' && c != '\n')) {
+                        pathbuf[pathidx++] = c;
+                        c = fgetc(f);
+                    }
+                    pathbuf[pathidx] = 0;
+                    
+                    auto fsub = fopen(pathbuf, "r");
+                    if(!fsub) {
+                        fprintf(stderr, "Error while preprocessing: failed to open included file '%s'\n", pathbuf);
+                        return nullptr;
+                    }
+                    
+                    preprocess(fsub, tmp);
+                    
+                    fclose(fsub);
+                }
+                
+                while(!feof(f) && c != '\n') {
+                    c = fgetc(f);
+                }
+            } else {
+                if(!feof(f)) {
+                    fwrite(&c, 1, 1, tmp);
+                }
+            }
+        }
+        
+        return tmp;
     }
     
     token get_token(input_file& f) {

@@ -1,10 +1,4 @@
-extern print(f : real) : real;
-extern printbool(b : bool) : bool;
-extern fmod(x : real, y : real) : real;
-
-extern land(l : bool, r : bool) : bool;
-extern lor(l : bool, r : bool) : bool;
-extern lnot(l : bool) : bool;
+#include ../runtime.cor
 
 fn fizzbuzz(level : real) : bool {
 	div3 : bool = fmod(level, 3.0) ? 0.0;
@@ -17,6 +11,6 @@ fn fizzbuzz(level : real) : bool {
 }
 
 fn Main() : bool {
-	fizzbuzz(1);
+	fizzbuzz(2);
 	return (true);
 }

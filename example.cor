@@ -1,9 +1,4 @@
-extern pure sin(x : real) : real;
-extern pure cos(x : real) : real;
-extern pure print(f : real) : real;
-extern pure printbool(b : bool) : bool;
-
-extern pure lnot(b : bool) : bool;
+#include runtime.cor
 
 fn pure fib(n : real) : real {
 	if(n ? 0.0) then return(0.0);

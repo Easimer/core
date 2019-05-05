@@ -155,7 +155,7 @@ namespace core {
                 if(pTyVar->isFloatingPointTy() && pTyRValue->isIntegerTy()) {
                     // Convert rvalue to double
                     log_warn(rhs.get(), "Implicitly converting integer to real!\n");
-                    R = ctx.builder.CreateFPToSI(R, pTyRValue);
+                    R = ctx.builder.CreateSIToFP(R, pTyVar);
                 } else {
                     auto stvar = type_to_str(pTyVar);
                     auto stval = type_to_str(pTyRValue);
@@ -181,11 +181,11 @@ namespace core {
                 if(pTyL->isFloatingPointTy() && pTyR->isIntegerTy()) {
                     // Convert R to double
                     log_warn(rhs.get(), "Implicitly converting integer to real!\n");
-                    R = ctx.builder.CreateFPToSI(R, pTyR);
+                    R = ctx.builder.CreateSIToFP(R, pTyL);
                 } else if(pTyR->isFloatingPointTy() && pTyL->isIntegerTy()) {
                     // Convert L to double
                     log_warn(lhs.get(), "Implicitly converting integer to real!\n");
-                    L = ctx.builder.CreateFPToSI(L, pTyL);
+                    L = ctx.builder.CreateSIToFP(L, pTyR);
                 } else {
                     auto sl = type_to_str(L->getType());
                     auto sr = type_to_str(R->getType());
@@ -281,7 +281,7 @@ namespace core {
                     if(pTyArg->isFloatingPointTy() && pTyVArg->isIntegerTy()) {
                         // Convert R to double
                         log_warn(args[iArg].get(), "Implicitly converting integer to real!\n");
-                        pVArg = ctx.builder.CreateFPToSI(pVArg, pTyVArg);
+                        pVArg = ctx.builder.CreateSIToFP(pVArg, pTyArg);
                     } else {
                         auto sf = type_to_str(pTyArg);
                         auto sp = type_to_str(pTyVArg);
