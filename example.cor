@@ -12,7 +12,7 @@ fn pure fib(n : real) : real {
 }
 
 fn Main() : bool {
-	print(fib(10));
+	print(fib(10.0));
 	return(true);
 }
 
