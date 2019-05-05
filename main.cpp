@@ -68,6 +68,7 @@ bool emit_object(core::llvm_ctx& ctx, const char* pszDest, const cpu_feature_req
     llvm::TargetOptions target_opts;
     
     auto rm = llvm::Optional<llvm::Reloc::Model>();
+    rm = llvm::Reloc::Model::PIC_;
     auto target_machine = target->createTargetMachine(target_triple, pszCPU, pszFeatures, target_opts, rm);
     
     ctx.module.setDataLayout(target_machine->createDataLayout());

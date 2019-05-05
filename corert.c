@@ -7,7 +7,7 @@ extern int Main(void);
 
 double print(double f) {
 	printf("%f\n", f);
-
+    
 	return f;
 }
 
@@ -18,6 +18,14 @@ int printbool(int b) {
 
 int lnot(int b) {
 	return b == 1 ? 0 : 1;
+}
+
+int lor(int l, int r) {
+    return (l || r) ? 1 : 0;
+}
+
+int land(int l, int r) {
+    return (l && r) ? 1 : 0;
 }
 
 int main(int argc, char** argv) {

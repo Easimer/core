@@ -69,6 +69,10 @@ namespace core {
             return nullptr;
         }
         
+        if(ts.type() != tok_t::paren_close) {
+            log_err(ts, "Expected closing parentheses\n");
+            return nullptr;
+        }
         assert(ts.type() == tok_t::paren_close);
         ts.step();
         return E;
