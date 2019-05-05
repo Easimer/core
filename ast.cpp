@@ -7,12 +7,8 @@
 using namespace llvm;
 
 namespace core {
-    void ast_real::dump() {
-        printf("literal(%f)", value);
-    }
-    
-    void ast_boolean::dump() {
-        printf("literal(%s)", value ? "true" : "false");
+    void ast_literal::dump() {
+        printf("literal(%s; %d %d %d)", value.c_str(), is_real, is_int, is_bool);
     }
     
     ast_identifier::ast_identifier(const char* pszName) {
@@ -90,12 +86,16 @@ namespace core {
         return ret;
     }
     
-    llvm::Value* ast_real::generate_ir(llvm_ctx& ctx) {
-        return ConstantFP::get(ctx.ctx, APFloat(value));
-    }
-    
-    llvm::Value* ast_boolean::generate_ir(llvm_ctx& ctx) {
-        return ConstantInt::get(ctx.ctx, APInt(1, value ? 1 : 0));
+    llvm::Value* ast_literal::generate_ir(llvm_ctx& ctx) {
+        if(is_real) {
+            return ConstantFP::get(ctx.ctx, APFloat(std::stod(value.c_str())));
+        } else if(is_int) {
+            return ConstantInt::get(ctx.ctx, APInt(64, std::stoi(value.c_str())));
+        } else if(is_bool) {
+            return ConstantInt::get(ctx.ctx, APInt(1, value == "true"));
+        }
+        log_err(this, "Literal has unknown type\n");
+        return nullptr;
     }
     
     llvm::Value* ast_identifier::generate_ir(llvm_ctx& ctx) {
@@ -180,6 +180,8 @@ namespace core {
             }
         }
         
+        ctx.builder.SetCurrentDebugLocation(llvm::DebugLoc::get(line, col, ctx.di_scope));
+        
         return ret;
     }
     
@@ -235,6 +237,9 @@ namespace core {
         FunctionType* pFuncTy;
         Function* pFunc;
         std::vector<llvm::Type*> type_signature;
+        llvm::SmallVector<Metadata*, 8> di_type_signature;
+        
+        di_type_signature.push_back(ctx.di_types[type->name]);
         
         for(auto& arg : args) {
             auto pType = str_to_type(ctx, arg.type);
@@ -243,6 +248,11 @@ namespace core {
                 return nullptr;
             }
             type_signature.push_back(pType);
+            if(ctx.di_types.count(arg.type)) {
+                di_type_signature.push_back(ctx.di_types[arg.type]);
+            } else {
+                di_type_signature.push_back(ctx.di_types["_unknown"]);
+            }
         }
         
         if(strcmp(type->name, "bool") == 0) {
@@ -274,39 +284,61 @@ namespace core {
             i++;
         }
         
+        llvm::DISubroutineType* pTySub = ctx.dbuilder.createSubroutineType(ctx.dbuilder.getOrCreateTypeArray(di_type_signature));
+        
+        ctx.di_func_sigs[pFunc] = pTySub;
+        
         return pFunc;
     }
     
     llvm::Value* ast_function::generate_ir(llvm_ctx& ctx) {
         auto pszFuncName = ((ast_identifier*)(prototype->name).get())->name;
-        Function* pszFunc = ctx.module.getFunction(pszFuncName);
+        Function* pFunc = ctx.module.getFunction(pszFuncName);
         
-        if(!pszFunc) {
+        if(!pFunc) {
             // prototype's gen_ir returns a Function*
-            pszFunc = (Function*)prototype->generate_ir(ctx);
+            pFunc = (Function*)prototype->generate_ir(ctx);
         }
         
-        assert(pszFunc);
+        assert(pFunc);
         
-        if(!pszFunc) {
+        if(!pFunc) {
             return nullptr;
         }
         
-        if(!pszFunc->empty()) {
+        if(!pFunc->empty()) {
             log_err(this, "Attempted redefinition of function '%s'\n", pszFuncName);
             return nullptr;
         }
         
-        BasicBlock* pBB = BasicBlock::Create(ctx.ctx, "entry", pszFunc);
+        fprintf(stderr, "New function %s on line %d\n", pszFuncName, prototype->line + 1);
+        
+        // DI
+        DIFile* pUnit = ctx.dbuilder.createFile(ctx.compile_unit->getFilename(), ctx.compile_unit->getDirectory());
+        DIScope* pScope = pUnit;
+        DISubprogram *SP = ctx.dbuilder.createFunction(pScope, pszFuncName, llvm::StringRef(), pUnit, prototype->line + 1, ctx.di_func_sigs[pFunc], false, true, prototype->line + 1, llvm::DINode::FlagPrototyped, false);
+        pFunc->setSubprogram(SP);
+        ctx.di_scope = SP;
+        // DI
+        
+        BasicBlock* pBB = BasicBlock::Create(ctx.ctx, "entry", pFunc);
         ctx.builder.SetInsertPoint(pBB);
         
         ctx.locals.clear();
         
-        for(auto& arg : pszFunc->args()) {
-            auto stackvar = create_entry_block_alloca(ctx, pszFunc, arg.getName(), arg.getType());
+        int iArg = 0;
+        for(auto& arg : pFunc->args()) {
+            auto stackvar = create_entry_block_alloca(ctx, pFunc, arg.getName(), arg.getType());
             ctx.builder.CreateStore(&arg, stackvar);
             ctx.locals.emplace(arg.getName(), stackvar);
+            
+            auto type_name = prototype->args[iArg].type;
+            
+            DILocalVariable *D = ctx.dbuilder.createParameterVariable(SP, arg.getName(), ++iArg, pUnit, line, ctx.di_types[type_name], true);
+            ctx.dbuilder.insertDeclare(stackvar, D, ctx.dbuilder.createExpression(), llvm::DebugLoc::get(line, 0, SP), ctx.builder.GetInsertBlock());
         }
+        
+        ctx.builder.SetCurrentDebugLocation(llvm::DebugLoc::get(line, col, pUnit));
         
         bool succ = true;
         for(auto& line : lines) {
@@ -316,12 +348,10 @@ namespace core {
         }
         
         if(succ) {
-            //llvm::verifyFunction(*pszFunc);
-            
-            return pszFunc;
+            return pFunc;
         } else {
             log_err(this, "Codegen for function '%s' has failed, erasing\n", pszFuncName);
-            pszFunc->eraseFromParent();
+            pFunc->eraseFromParent();
             return nullptr;
         }
     }

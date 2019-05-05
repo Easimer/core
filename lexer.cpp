@@ -66,6 +66,8 @@ namespace core {
             ret = true;
         } else if(s == "bool") {
             ret = true;
+        } else if(s == "int") {
+            ret = true;
         }
         // TODO: etc.
         return ret;

@@ -83,23 +83,30 @@ namespace core {
         const auto& s = ts.current();
         int line = ts.line(), col = ts.col();
         // Is real number
-        bool is_real = true;
-        for(int i = 0; i < s.size() && is_real; i++) {
+        bool is_number = true;
+        bool is_real = false;
+        bool is_int = false;
+        bool is_bool = false;
+        for(int i = 0; i < s.size() && is_number; i++) {
             if((s[i] < '0' || s[i] > '9') && (s[i] != '.')) {
-                is_real = false;
+                is_number = false;
+            }
+            if(is_number && s[i] == '.') {
+                is_real = true;
             }
         }
-        if(is_real) {
-            auto ret = std::make_unique<ast_real>();
-            ret->value = std::stod(s.c_str());
-            ret->line = line; ret->col = col;
-            ts.step();
-            return ret;
+        if(is_number && !is_real) {
+            is_int = true;
         }
-        
         if(s == "false" || s == "true") {
-            auto ret = std::make_unique<ast_boolean>();
-            ret->value = s == "true";
+            is_bool = true;
+            is_real = is_int = false;
+        }
+        if(is_real || is_int || is_bool) {
+            auto ret = std::make_unique<ast_literal>(s);
+            ret->is_real = is_real;
+            ret->is_int = is_int;
+            ret->is_bool = is_bool;
             ret->line = line; ret->col = col;
             ts.step();
             return ret;

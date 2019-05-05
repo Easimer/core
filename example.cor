@@ -6,8 +6,8 @@ extern printbool(b : bool) : bool;
 extern lnot(b : bool) : bool;
 
 fn fib(n : real) : real {
-	if(n ? 0) then return(0.0);
-	if(n ? 1) then return(1.0);
+	if(n ? 0.0) then return(0.0);
+	if(n ? 1.0) then return(1.0);
 	return(fib(n - 2.0) + fib(n - 1.0));
 }
 

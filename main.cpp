@@ -24,14 +24,17 @@ core::token_stream tokenize(const char* pszSource) {
     return ts;
 }
 
-bool codegen(core::llvm_ctx& ctx, const char* pszDest, core::token_stream& ts) {
+bool codegen(core::llvm_ctx& ctx, const char* pszDest, core::token_stream& ts, bool dump_ir) {
     bool ret = true;
     while(!ts.empty() && ret) {
         auto expr = core::parse(ts);
+        if(expr && dump_ir) {
+            expr->dump();
+        }
         if(expr) {
             auto ir = expr->generate_ir(ctx);
             if(ir) {
-                //ir->print(llvm::errs());
+                
             } else {
                 ret = false;
             }
@@ -39,6 +42,7 @@ bool codegen(core::llvm_ctx& ctx, const char* pszDest, core::token_stream& ts) {
             ret = false;
         }
     }
+    ctx.dbuilder.finalize();
     return ret;
 }
 
@@ -95,12 +99,14 @@ int main(int argc, char** argv) {
     const char* pszSource = nullptr;
     const char* pszDest = nullptr;
     cpu_feature_request feat_req;
+    bool dump_ir = false;
     
     for(int i = 1; i < argc; i++) {
         if(strcmp(argv[i],  "-c") == 0) {
             if(i + 1 < argc) {
                 if(argv[i + 1][0] != '-') {
                     pszSource = argv[i + 1];
+                    i++;
                 } else {
                     fprintf(stderr, "Expected source filename after -c\n");
                     return 1;
@@ -113,6 +119,7 @@ int main(int argc, char** argv) {
             if(i + 1 < argc) {
                 if(argv[i + 1][0] != '-') {
                     pszDest = argv[i + 1];
+                    i++;
                 } else {
                     fprintf(stderr, "Expected destination filename after -o\n");
                     return 1;
@@ -121,13 +128,15 @@ int main(int argc, char** argv) {
                 fprintf(stderr, "Expected destination filename after -o\n");
                 return 1;
             }
+        } else if(strcmp(argv[i], "-D") == 0) {
+            dump_ir = true;
         }
     }
     
     if(pszSource && pszDest) {
         auto ts = tokenize(pszSource);
-        core::llvm_ctx ctx(pszDest);
-        if(codegen(ctx, pszDest, ts)) {
+        core::llvm_ctx ctx(pszSource, pszDest);
+        if(codegen(ctx, pszDest, ts, dump_ir)) {
             if(emit_object(ctx, pszDest, feat_req)) {
                 return 0;
             } else {

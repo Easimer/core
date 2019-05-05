@@ -14,6 +14,7 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/IR/DIBuilder.h>
 
 #include "types.h"
 
@@ -26,11 +27,24 @@ namespace core {
         llvm::IRBuilder<> builder;
         llvm::Module module;
         
+        llvm::DIBuilder dbuilder;
+        llvm::DICompileUnit* compile_unit;
+        
         std::unordered_map<std::string, llvm::AllocaInst*> globals;
         std::unordered_map<std::string, llvm::AllocaInst*> locals;
         
-        llvm_ctx(const char* pszModuleName) :
-        builder(ctx), module(pszModuleName, ctx) {}
+        std::unordered_map<llvm::Function*, llvm::DISubroutineType*> di_func_sigs;
+        std::unordered_map<std::string, llvm::DIType*> di_types;
+        llvm::DIScope* di_scope;
+        
+        llvm_ctx(const char* pszSource, const char* pszModuleName) :
+        builder(ctx), module(pszModuleName, ctx), dbuilder(module), compile_unit(dbuilder.createCompileUnit(llvm::dwarf::DW_LANG_C, dbuilder.createFile(pszSource, "."), "corec", 0, "", 0)), di_scope(nullptr) {
+            // Setup debug types
+            di_types["real"] = dbuilder.createBasicType("real", 64, llvm::dwarf::DW_ATE_float);
+            di_types["int"] = dbuilder.createBasicType("int", 64, llvm::dwarf::DW_ATE_signed);
+            di_types["bool"] = dbuilder.createBasicType("bool", 1, llvm::dwarf::DW_ATE_unsigned);
+            di_types["_unknown"] = dbuilder.createUnspecifiedType("_unknown");
+        }
     };
     
     class ast_expression {
@@ -44,20 +58,14 @@ namespace core {
         virtual llvm::Value* generate_ir(llvm_ctx& ctx) { return nullptr; };
     };
     
-    class ast_literal : public ast_expression {};
-    
-    class ast_real : public ast_literal {
+    class ast_literal : public ast_expression {
         public:
-        double value;
+        ast_literal(const std::string& value) : value(value) {}
         
-        virtual void dump() override;
-        OVERRIDE_GEN_IR();
-    };
-    
-    class ast_boolean : public ast_literal {
-        public:
-        bool value;
-        
+        std::string value;
+        bool is_real = false;
+        bool is_int = false;
+        bool is_bool = false;
         virtual void dump() override;
         OVERRIDE_GEN_IR();
     };
