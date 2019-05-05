@@ -16,14 +16,6 @@ int printbool(int b) {
 	return b;
 }
 
-int eq(double l, double r) {
-	return l == r ? 1 : 0;
-}
-
-int neq(double l, double r) {
-	return l != r ? 1 : 0;
-}
-
 int lnot(int b) {
 	return b == 1 ? 0 : 1;
 }
