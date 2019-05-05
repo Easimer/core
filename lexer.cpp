@@ -100,6 +100,14 @@ namespace core {
             ret = true;
         } else if(s == "=") {
             ret = true;
+        } else if(s == "?") {
+            ret = true;
+        } else if(s == "!") {
+            ret = true;
+        } else if(s == "<") {
+            ret = true;
+        } else if(s == ">") {
+            ret = true;
         }
         
         return ret;

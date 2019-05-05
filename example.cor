@@ -1,5 +1,5 @@
-extern sinf(x : real) : real;
-extern cosf(x : real) : real;
+extern sin(x : real) : real;
+extern cos(x : real) : real;
 extern print(f : real) : real;
 extern printbool(b : bool) : bool;
 
@@ -15,7 +15,7 @@ fn fib(n : real) : real {
 
 fn Main() : bool {
 	print(fib(10));
-	print(cosf(0));
+	print(cos(0));
 	return(true);
 }
 

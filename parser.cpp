@@ -8,6 +8,10 @@ namespace core {
     
     static int operator_precedence(char op) {
         switch(op) {
+            case '?': return 3;
+            case '!': return 3;
+            case '<': return 3;
+            case '>': return 3;
             case '+': return 5;
             case '-': return 5;
             case '*': return 10;

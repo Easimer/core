@@ -5,7 +5,7 @@
 // Core entry point
 extern int Main(void);
 
-float print(float f) {
+double print(double f) {
 	printf("%f\n", f);
 
 	return f;
@@ -16,11 +16,11 @@ int printbool(int b) {
 	return b;
 }
 
-int eq(float l, float r) {
+int eq(double l, double r) {
 	return l == r ? 1 : 0;
 }
 
-int neq(float l, float r) {
+int neq(double l, double r) {
 	return l != r ? 1 : 0;
 }
 

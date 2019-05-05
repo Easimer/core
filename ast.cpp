@@ -83,7 +83,7 @@ namespace core {
     static llvm::Type* str_to_type(llvm_ctx& ctx, const std::string& s) {
         llvm::Type* ret = nullptr;
         if(s == "real") {
-            return Type::getFloatTy(ctx.ctx);
+            return Type::getDoubleTy(ctx.ctx);
         } else if(s == "bool") {
             return Type::getInt1Ty(ctx.ctx);
         }
@@ -162,6 +162,18 @@ namespace core {
                 case '/':
                 ret = ctx.builder.CreateFDiv(L, R, "divtmp");
                 break;
+                case '?':
+                ret = ctx.builder.CreateFCmpUEQ(L, R, "cmptmp");
+                break;
+                case '!':
+                ret = ctx.builder.CreateFCmpUNE(L, R, "cmptmp");
+                break;
+                case '<':
+                ret = ctx.builder.CreateFCmpULT(L, R, "cmptmp");
+                break;
+                case '>':
+                ret = ctx.builder.CreateFCmpUGT(L, R, "cmptmp");
+                break;
                 default:
                 log_err(this, "Unknown operator %c\n", op);
                 break;
@@ -236,7 +248,7 @@ namespace core {
         if(strcmp(type->name, "bool") == 0) {
             pFuncTy = FunctionType::get(Type::getInt1Ty(ctx.ctx), type_signature, false);
         } else if(strcmp(type->name, "real") == 0) {
-            pFuncTy = FunctionType::get(Type::getFloatTy(ctx.ctx), type_signature, false);
+            pFuncTy = FunctionType::get(Type::getDoubleTy(ctx.ctx), type_signature, false);
         } else {
             log_err(this, "Unknown type '%s' in function return type\n", type->name);
             return nullptr;

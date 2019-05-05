@@ -48,7 +48,7 @@ namespace core {
     
     class ast_real : public ast_literal {
         public:
-        float value;
+        double value;
         
         virtual void dump() override;
         OVERRIDE_GEN_IR();
