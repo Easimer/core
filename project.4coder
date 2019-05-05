@@ -3,6 +3,7 @@ version(1);
 project_name = "core";
 
 patterns = {
+"*.c",
 "*.cpp",
 "*.h",
 "*.4coder",
