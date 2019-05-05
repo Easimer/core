@@ -7,16 +7,16 @@ extern lor(l : bool, r : bool) : bool;
 extern lnot(l : bool) : bool;
 
 fn fizzbuzz(level : real) : bool {
-	div3 : bool = fmod(level, 3) ? 0.0;
-	div5 : bool = fmod(level, 5) ? 0.0;
+	div3 : bool = fmod(level, 3.0) ? 0.0;
+	div5 : bool = fmod(level, 5.0) ? 0.0;
 	if(div3) then printbool(false);
 	if(div5) then printbool(true);
 	if(lnot(lor(div3, div5))) then print(level);
-	if(level < 100) then fizzbuzz(level + 1);
+	if(level < 100.0) then fizzbuzz(level + 1.0);
 	return (true);
 }
 
 fn Main() : bool {
-	fizzbuzz(1);
+	fizzbuzz(1.0);
 	return (true);
 }

@@ -37,6 +37,10 @@ namespace core {
         std::unordered_map<std::string, llvm::DIType*> di_types;
         llvm::DIScope* di_scope;
         
+        bool current_function_pure = false;
+        
+        std::unordered_map<llvm::Function*, bool> func_is_pure;
+        
         llvm_ctx(const char* pszSource, const char* pszModuleName) :
         builder(ctx), module(pszModuleName, ctx), dbuilder(module), compile_unit(dbuilder.createCompileUnit(llvm::dwarf::DW_LANG_C, dbuilder.createFile(pszSource, "."), "corec", 0, "", 0)), di_scope(nullptr) {
             // Setup debug types
@@ -95,6 +99,7 @@ namespace core {
         up<ast_expression> name;
         std::vector<ast_declaration> args;
         up<ast_identifier> type;
+        bool is_pure;
         
         virtual void dump() override;
         OVERRIDE_GEN_IR();

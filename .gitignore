@@ -3,3 +3,4 @@ corec
 stdafx.h.pch
 example.exe
 *.swp
+*.tmp

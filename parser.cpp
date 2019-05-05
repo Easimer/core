@@ -252,7 +252,13 @@ namespace core {
         up<ast_expression> name;
         std::vector<ast_declaration> args;
         
+        bool is_pure = false;
         int line = ts.line(), col = ts.col();
+        
+        if(ts.type() == tok_t::pure) {
+            is_pure = true;
+            ts.step(); // Eat pure
+        }
         
         name = parse_identifier(ts, true);
         
@@ -293,6 +299,7 @@ namespace core {
         ret->name = std::move(name);
         ret->args = std::move(args);
         ret->type = std::move(type);
+        ret->is_pure = is_pure;
         ret->line = line; ret->col = col;
         
         return ret;

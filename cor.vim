@@ -8,14 +8,14 @@ if exists("b:current_syntax")
 endif
 
 syn keyword corFunction fn
-syn keyword corExtern extern
+syn keyword corFuncAttr extern pure
 syn keyword corReturn return
 syn keyword corConditional if then
 syn keyword corType bool real
 syn match corFunctionName '^(?:fn)\s+(\S+)(?:[(])'
 
 hi def link corFunction Keyword
-hi def link corExtern Keyword
+hi def link corFuncAttr Keyword
 hi def link corReturn Keyword
 hi def link corConditional Conditional
 hi def link corType Type

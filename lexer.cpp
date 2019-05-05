@@ -137,6 +137,8 @@ namespace core {
             return {tok_t::cif, s};
         } else if(s == "then") {
             return {tok_t::cthen, s};
+        } else if(s == "pure") {
+            return {tok_t::pure, s};
         } else {
             if(is_literal(s)) {
                 return {tok_t::literal, s};

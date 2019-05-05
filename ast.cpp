@@ -149,6 +149,15 @@ namespace core {
                 return ret;
             }
             
+            if(L->getType() != R->getType()) {
+                std::string type_l, type_r;
+                llvm::raw_string_ostream sl(type_l), sr(type_r);
+                L->getType()->print(sl);
+                R->getType()->print(sr);
+                log_err(this, "Type mismatch in binary operation; lhs : %s, rhs : %s\n", sl.str().c_str(), sr.str().c_str());
+                return ret;
+            }
+            
             switch(op) {
                 case '+':
                 ret = ctx.builder.CreateFAdd(L, R, "addtmp");
@@ -219,6 +228,11 @@ namespace core {
                 return ret;
             }
             
+            if(ctx.current_function_pure && !ctx.func_is_pure[pFunc]) {
+                log_err(this, "Cannot call impure function %s from a pure function!\n", name->name);
+                return ret;
+            }
+            
             std::vector<llvm::Value*> vargs;
             for(int i = 0; i < args.size(); i++) {
                 vargs.push_back(args[i]->generate_ir(ctx));
@@ -277,6 +291,8 @@ namespace core {
         }
         
         pFunc = Function::Create(pFuncTy, Function::ExternalLinkage, id->name, &ctx.module);
+        
+        ctx.func_is_pure.emplace(pFunc, is_pure);
         
         int i = 0;
         for(auto& arg : pFunc->args()) {
@@ -338,12 +354,15 @@ namespace core {
         
         ctx.builder.SetCurrentDebugLocation(llvm::DebugLoc::get(line, col, pUnit));
         
+        ctx.current_function_pure = prototype->is_pure;
+        
         bool succ = true;
         for(auto& line : lines) {
             if(!line->generate_ir(ctx)) {
                 succ = false;
             }
         }
+        ctx.current_function_pure = false;
         
         if(succ) {
             return pFunc;
