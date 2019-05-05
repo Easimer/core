@@ -152,10 +152,16 @@ namespace core {
             auto pTyRValue = R->getType();
             
             if(pTyVar != pTyRValue) {
-                auto stvar = type_to_str(pTyVar);
-                auto stval = type_to_str(pTyRValue);
-                log_err(this, "Assigning to '%s' from incompatible type '%s\n", stvar.c_str(), stval.c_str());
-                return ret;
+                if(pTyVar->isFloatingPointTy() && pTyRValue->isIntegerTy()) {
+                    // Convert rvalue to double
+                    log_warn(rhs.get(), "Implicitly converting integer to real!\n");
+                    R = ctx.builder.CreateFPToSI(R, pTyRValue);
+                } else {
+                    auto stvar = type_to_str(pTyVar);
+                    auto stval = type_to_str(pTyRValue);
+                    log_err(this, "Assigning to '%s' from incompatible type '%s\n", stvar.c_str(), stval.c_str());
+                    return ret;
+                }
             }
             
             ctx.builder.CreateStore(R, pVar);
@@ -168,11 +174,24 @@ namespace core {
                 return ret;
             }
             
-            if(L->getType() != R->getType()) {
-                auto sl = type_to_str(L->getType());
-                auto sr = type_to_str(R->getType());
-                log_err(this, "Type mismatch in binary operation; lhs : %s, rhs : %s\n", sl.c_str(), sr.c_str());
-                return ret;
+            auto pTyL = L->getType();
+            auto pTyR = R->getType();
+            
+            if(pTyL != pTyR) {
+                if(pTyL->isFloatingPointTy() && pTyR->isIntegerTy()) {
+                    // Convert R to double
+                    log_warn(rhs.get(), "Implicitly converting integer to real!\n");
+                    R = ctx.builder.CreateFPToSI(R, pTyR);
+                } else if(pTyR->isFloatingPointTy() && pTyL->isIntegerTy()) {
+                    // Convert L to double
+                    log_warn(lhs.get(), "Implicitly converting integer to real!\n");
+                    L = ctx.builder.CreateFPToSI(L, pTyL);
+                } else {
+                    auto sl = type_to_str(L->getType());
+                    auto sr = type_to_str(R->getType());
+                    log_err(this, "Type mismatch in binary operation; lhs : %s, rhs : %s\n", sl.c_str(), sr.c_str());
+                    return ret;
+                }
             }
             
             switch(op) {
@@ -223,6 +242,7 @@ namespace core {
         llvm::Value* ret = nullptr;
         
         if(strcmp(name->name, "return") == 0) { // return is technically a function call
+            // TODO: typecheck here
             auto n_args = args.size();
             if(n_args == 1) {
                 auto V = args[0]->generate_ir(ctx);
@@ -258,10 +278,16 @@ namespace core {
                 auto pTyVArg = pVArg->getType();
                 
                 if(pTyVArg != pTyArg) {
-                    auto sf = type_to_str(pTyArg);
-                    auto sp = type_to_str(pTyVArg);
-                    log_err(this, "Type mismatch in function call: argument %i of %s expects type %s, but was passed a(n) %s\n", iArg, name->name, sf.c_str(), sp.c_str());
-                    return ret;
+                    if(pTyArg->isFloatingPointTy() && pTyVArg->isIntegerTy()) {
+                        // Convert R to double
+                        log_warn(args[iArg].get(), "Implicitly converting integer to real!\n");
+                        pVArg = ctx.builder.CreateFPToSI(pVArg, pTyVArg);
+                    } else {
+                        auto sf = type_to_str(pTyArg);
+                        auto sp = type_to_str(pTyVArg);
+                        log_err(this, "Type mismatch in function call: argument %i of %s expects type %s, but was passed a(n) %s\n", iArg, name->name, sf.c_str(), sp.c_str());
+                        return ret;
+                    }
                 }
                 
                 vargs.push_back(pVArg);

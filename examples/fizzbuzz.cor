@@ -17,6 +17,6 @@ fn fizzbuzz(level : real) : bool {
 }
 
 fn Main() : bool {
-	fizzbuzz(1.0);
+	fizzbuzz(1);
 	return (true);
 }
