@@ -86,6 +86,14 @@ namespace core {
         return ret;
     }
     
+    // Converts an llvm::Type to a string
+    static std::string type_to_str(const llvm::Type* pType) {
+        std::string ret;
+        llvm::raw_string_ostream sret(ret);
+        pType->print(sret);
+        return ret;
+    }
+    
     llvm::Value* ast_literal::generate_ir(llvm_ctx& ctx) {
         if(is_real) {
             return ConstantFP::get(ctx.ctx, APFloat(std::stod(value.c_str())));
@@ -139,6 +147,17 @@ namespace core {
                 log_err(lhs.get(), "Unknown variable referenced\n");
                 return ret;
             }
+            
+            auto pTyVar = pVar->getType()->getElementType();
+            auto pTyRValue = R->getType();
+            
+            if(pTyVar != pTyRValue) {
+                auto stvar = type_to_str(pTyVar);
+                auto stval = type_to_str(pTyRValue);
+                log_err(this, "Assigning to '%s' from incompatible type '%s\n", stvar.c_str(), stval.c_str());
+                return ret;
+            }
+            
             ctx.builder.CreateStore(R, pVar);
             ret = R;
             return ret;
