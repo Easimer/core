@@ -234,11 +234,27 @@ namespace core {
             }
             
             std::vector<llvm::Value*> vargs;
-            for(int i = 0; i < args.size(); i++) {
-                vargs.push_back(args[i]->generate_ir(ctx));
-                if(!vargs.back()) {
+            int iArg = 0;
+            for(auto& arg : pFunc->args()) {
+                auto pVArg = args[iArg]->generate_ir(ctx);
+                auto pTyArg = arg.getType();
+                auto pTyVArg = pVArg->getType();
+                
+                if(pTyVArg != pTyArg) {
+                    std::string type_f, type_p;
+                    llvm::raw_string_ostream sf(type_f), sp(type_p);
+                    pTyArg->print(sf);
+                    pTyVArg->print(sp);
+                    log_err(this, "Type mismatch in function call: argument %i of %s expects type %s, but was passed a(n) %s\n", iArg, name->name, sf.str().c_str(), sp.str().c_str());
                     return ret;
                 }
+                
+                vargs.push_back(pVArg);
+                if(!pVArg) {
+                    // argument codegen failure
+                    return ret;
+                }
+                iArg++;
             }
             
             ret = ctx.builder.CreateCall(pFunc, vargs, "calltmp");
