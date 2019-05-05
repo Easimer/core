@@ -21,5 +21,5 @@ int lnot(int b) {
 }
 
 int main(int argc, char** argv) {
-	return Main();
+	return Main() ? 0 : -1;
 }
