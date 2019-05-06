@@ -21,14 +21,14 @@ namespace core {
         }
         
         if(!is_eof(f)) {
-            if(!isalnum(c)) {
+            if(!isalnum(c) && c != '_') {
                 buf[0] = c;
                 buf[1] = 0;
                 f.last_char = ' ';
                 return std::string(buf);
             }
             
-            while(c != ' ' && buf_len < 4095 && (isalnum(c) || c == '.')) {
+            while(c != ' ' && buf_len < 4095 && (isalnum(c) || c == '.' || c == '_')) {
                 buf[buf_len++] = c;
                 c = fgetc(f.fd);
                 f.col++;
@@ -83,7 +83,7 @@ namespace core {
         }
         
         for(int i = 1; i < s.size() && ret; i++) {
-            if(!isalnum(s[i])) {
+            if(!isalnum(s[i]) && s[i] != '_') {
                 ret = false;
             }
         }

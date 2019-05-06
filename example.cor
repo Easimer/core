@@ -7,7 +7,7 @@ fn pure fib(n : real) : real {
 }
 
 fn Main() : bool {
-	convtest : real = 1;
+	conv_test : real = 1;
 	print(fib(10.0));
 	return(true);
 }
