@@ -1,6 +1,7 @@
 corec
 *.o
 stdafx.h.pch
+stdafx.h.gch
 example.exe
 *.swp
 *.tmp

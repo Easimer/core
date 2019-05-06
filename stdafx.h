@@ -1,5 +1,3 @@
-#pragma once
-
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/Optional.h>
 #include <llvm/ADT/STLExtras.h>
