@@ -1,9 +1,9 @@
-CC=clang-7
-CXX=clang++-7
+CC=gcc
+CXX=g++
 LLVM_CFG=llvm-config-7
-CXXFLAGS_LLVM := $(shell $(LLVM_CFG) --cxxflags)
+CXXFLAGS_LLVM := $(shell $(LLVM_CFG) --cppflags)
 CXXFLAGS=-g -std=c++17 -O0 -Wall $(CXXFLAGS_LLVM)
-LDFLAGS_LLVM := $(shell $(LLVM_CFG) --ldflags --system-libs --libs core)
+LDFLAGS_LLVM := $(shell $(LLVM_CFG) --link-static --ldflags --system-libs --libs all)
 LDFLAGS=$(LDFLAGS_LLVM)
 all: corec example.exe
 
@@ -12,11 +12,11 @@ OBJECTS=main.o lexer.o parser.o ast.o log.o
 corec: $(OBJECTS)
 	$(CXX) -o corec $(OBJECTS) $(LDFLAGS)
 
-%.o: %.cpp types.h stdafx.h.pch
-	$(CXX) $(CXXFLAGS) -include-pch stdafx.h.pch -o $@ -c $<
+%.o: %.cpp types.h
+	$(CXX) $(CXXFLAGS) -o $@ -c $<
 
 stdafx.h.pch: stdafx.h
-	$(CXX) $(CXXFLAGS) -x c++-header stdafx.h -o stdafx.h.pch
+	$(CXX) $(CXXFLAGS) -x c++-header -o stdafx.h.pch -c stdafx.h
 
 corert.o: corert.c
 	$(CC) -o corert.o -c corert.c
@@ -28,6 +28,6 @@ example.exe: corert.o example.o
 
 
 clean:
-	rm *.o corec example.exe stdafx.h.pch
+	rm -f *.o corec example.exe stdafx.h.pch
 
 .PHONY: clean
