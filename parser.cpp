@@ -46,7 +46,7 @@ namespace core {
         
         ts.step();
         
-        if(ts.type() != tok_t::type) {
+        if(ts.type() != tok_t::identifier) {
             log_err(ts, "Expected type in declaration\n");
             return ret;
         }
@@ -285,7 +285,7 @@ namespace core {
         
         ts.step(); // Eat colon
         
-        if(ts.type() != tok_t::type) {
+        if(ts.type() != tok_t::identifier) {
             log_err(ts, "Expected return type in function prototype, got %d\n", (int)ts.type());
             return nullptr;
         }

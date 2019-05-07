@@ -63,15 +63,18 @@ namespace core {
     }
     
     static bool is_type(const std::string& s) {
-        bool ret = false;
-        if(s == "real") {
-            ret = true;
-        } else if(s == "bool") {
-            ret = true;
-        } else if(s == "int") {
-            ret = true;
+        bool ret = true;
+        
+        if(!isalpha(s[0])) {
+            ret = false;
         }
-        // TODO: etc.
+        
+        for(int i = 1; i < s.size() && ret; i++) {
+            if(!isalnum(s[i]) && s[i] != '_' && s[i] != '[' && s[i] != ']') {
+                ret = false;
+            }
+        }
+        
         return ret;
     }
     
@@ -199,11 +202,9 @@ namespace core {
         } else {
             if(is_literal(s)) {
                 return {tok_t::literal, s};
-            } else if(is_type(s)) {
-                return {tok_t::type, s};
             } else if(is_operator(s)) {
                 return {tok_t::oper, s};
-            } else if(is_identifier(s)) {
+            } else if(is_identifier(s) || is_type(s)) {
                 return {tok_t::identifier, s};
             } else {
                 return {tok_t::unknown, s};

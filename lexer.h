@@ -12,7 +12,6 @@ namespace core {
         unknown,
         
         literal,
-        type,
         identifier,
         oper,
         
