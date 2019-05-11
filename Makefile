@@ -28,6 +28,6 @@ example.exe: corert.o example.o
 
 
 clean:
-	rm -f *.o corec example.exe stdafx.h.pch
+	rm -f *.o corec example.exe stdafx.h.pch stdafx.h.gch
 
 .PHONY: clean

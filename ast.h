@@ -3,54 +3,12 @@
 #include <vector>
 #include <unordered_map>
 
-#include <llvm/ADT/APFloat.h>
-#include <llvm/ADT/STLExtras.h>
-#include <llvm/IR/BasicBlock.h>
-#include <llvm/IR/Constants.h>
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/Function.h>
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/Module.h>
-#include <llvm/IR/Type.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/IR/DIBuilder.h>
-
 #include "types.h"
+#include "type.h"
 
 #define OVERRIDE_GEN_IR() virtual llvm::Value* generate_ir(llvm_ctx& ctx) override
 
 namespace core {
-    // LLVM state
-    struct llvm_ctx {
-        llvm::LLVMContext ctx;
-        llvm::IRBuilder<> builder;
-        llvm::Module module;
-        
-        llvm::DIBuilder dbuilder;
-        llvm::DICompileUnit* compile_unit;
-        
-        std::unordered_map<std::string, llvm::AllocaInst*> globals;
-        std::unordered_map<std::string, llvm::AllocaInst*> locals;
-        
-        std::unordered_map<llvm::Function*, llvm::DISubroutineType*> di_func_sigs;
-        std::unordered_map<std::string, llvm::DIType*> di_types;
-        llvm::DIScope* di_scope;
-        
-        bool current_function_pure = false;
-        
-        std::unordered_map<llvm::Function*, bool> func_is_pure;
-        
-        llvm_ctx(const char* pszSource, const char* pszModuleName) :
-        builder(ctx), module(pszModuleName, ctx), dbuilder(module), compile_unit(dbuilder.createCompileUnit(llvm::dwarf::DW_LANG_C, dbuilder.createFile(pszSource, "."), "corec", 0, "", 0)), di_scope(nullptr) {
-            // Setup debug types
-            di_types["real"] = dbuilder.createBasicType("real", 64, llvm::dwarf::DW_ATE_float);
-            di_types["int"] = dbuilder.createBasicType("int", 64, llvm::dwarf::DW_ATE_signed);
-            di_types["bool"] = dbuilder.createBasicType("bool", 1, llvm::dwarf::DW_ATE_unsigned);
-            di_types["_unknown"] = dbuilder.createUnspecifiedType("_unknown");
-        }
-    };
-    
     class ast_expression {
         public:
         int line = 0, col = 0;
@@ -58,8 +16,13 @@ namespace core {
         virtual ~ast_expression() {}
         
         virtual void dump() = 0;
-        
+        virtual bool is_empty() { return false; }
         virtual llvm::Value* generate_ir(llvm_ctx& ctx) { return nullptr; };
+    };
+    
+    class ast_empty : public ast_expression {
+        virtual void dump() override {};
+        virtual bool is_empty() override { return true; }
     };
     
     class ast_literal : public ast_expression {
@@ -88,7 +51,7 @@ namespace core {
         public:
         
         up<ast_identifier> identifier;
-        std::string type;
+        sp<core::type> type;
         
         virtual void dump() override;
         OVERRIDE_GEN_IR();
@@ -140,6 +103,14 @@ namespace core {
         public:
         up<ast_expression> condition;
         up<ast_expression> line;
+        virtual void dump() override;
+        OVERRIDE_GEN_IR();
+    };
+    
+    class ast_type : public ast_expression {
+        public:
+        sp<type> pType;
+        
         virtual void dump() override;
         OVERRIDE_GEN_IR();
     };

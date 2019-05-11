@@ -16,7 +16,8 @@ namespace core {
         oper,
         
         // keywords
-        fn, ext, cif, cthen, pure,
+        fn, ext, cif, cthen, pure, type,
+        from,
         
         paren_open, paren_close,
         semicolon,

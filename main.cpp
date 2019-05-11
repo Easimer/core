@@ -29,19 +29,21 @@ core::token_stream tokenize(const char* pszSource) {
     return ts;
 }
 
-bool codegen(core::llvm_ctx& ctx, const char* pszDest, core::token_stream& ts, bool dump_ir) {
+bool codegen(core::llvm_ctx& ctx, const char* pszDest, core::token_stream& ts, bool dump_ir, core::type_manager& type_mgr) {
     bool ret = true;
     while(!ts.empty() && ret) {
-        auto expr = core::parse(ts);
+        auto expr = core::parse(ts, ctx, type_mgr);
         if(expr && dump_ir) {
             expr->dump();
         }
         if(expr) {
-            auto ir = expr->generate_ir(ctx);
-            if(ir) {
-                
-            } else {
-                ret = false;
+            if(!expr->is_empty()) {
+                auto ir = expr->generate_ir(ctx);
+                if(ir) {
+                    
+                } else {
+                    ret = false;
+                }
             }
         } else {
             ret = false;
@@ -139,9 +141,10 @@ int main(int argc, char** argv) {
     }
     
     if(pszSource && pszDest) {
+        core::type_manager type_mgr;
         auto ts = tokenize(pszSource);
         core::llvm_ctx ctx(pszSource, pszDest);
-        if(codegen(ctx, pszDest, ts, dump_ir)) {
+        if(codegen(ctx, pszDest, ts, dump_ir, type_mgr)) {
             if(emit_object(ctx, pszDest, feat_req)) {
                 return 0;
             } else {

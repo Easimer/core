@@ -1,3 +1,12 @@
+#include <vector>
+#include <unordered_map>
+#include <memory>
+#include <iostream>
+
+#include <cstdio>
+#include <cstring>
+#include <cassert>
+
 #include <llvm/ADT/APFloat.h>
 #include <llvm/ADT/Optional.h>
 #include <llvm/ADT/STLExtras.h>
@@ -12,6 +21,7 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/IR/LegacyPassManager.h>
+#include <llvm/IR/DIBuilder.h>
 #include <llvm/Target/TargetOptions.h>
 #include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/FileSystem.h>

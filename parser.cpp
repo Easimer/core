@@ -1,10 +1,11 @@
+#include "stdafx.h"
 #include <cassert>
 #include "log.h"
 #include "parser.h"
 
 namespace core {
-    static up<ast_expression> parse_expression(token_stream& ts);
-    static up<ast_expression> parse_primary(token_stream& ts);
+    static up<ast_expression> parse_expression(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr);
+    static up<ast_expression> parse_primary(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr);
     
     static int operator_precedence(char op) {
         switch(op) {
@@ -21,8 +22,49 @@ namespace core {
         return -1;
     }
     
-    static ast_declaration parse_declaration(token_stream& ts) {
-        std::string name, type;
+    static up<ast_expression> parse_typedef(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
+        up<ast_expression> ret = nullptr;
+        assert(ts.type() == tok_t::type);
+        if(ts.type() != tok_t::type) {
+            log_err(ts, "Expected keyword 'type' in typedef\n");
+            return ret;
+        }
+        
+        ts.step();
+        
+        if(ts.type() != tok_t::identifier) {
+            log_err(ts, "Expected identifier in typedef\n");
+            return ret;
+        }
+        
+        auto ID_str = ts.current();
+        //auto ID = std::make_unique<ast_identifier>(ID_str.c_str());
+        ts.step();
+        
+        if(ts.type() != tok_t::colon) {
+            log_err(ts, "Expected colon in typedef between identifier and type, got %d\n", (int)ts.type());
+            return ret;
+        }
+        ts.step();
+        
+        auto type = parse_type(ts, ctx, type_mgr, ID_str);
+        
+        if(ts.type() != tok_t::semicolon) {
+            log_err(ts, "Expected semicolon at end of the typedef!\n");
+            return ret;
+        }
+        ts.step();
+        
+        type_mgr.add_type(ID_str, type);
+        
+        ret = std::make_unique<ast_empty>();
+        
+        return ret;
+    }
+    
+    static ast_declaration parse_declaration(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
+        std::string name;
+        sp<core::type> type;
         ast_declaration ret;
         
         assert(ts.type() == tok_t::identifier);
@@ -51,7 +93,7 @@ namespace core {
             return ret;
         }
         
-        type = ts.current();
+        type = parse_atom_type(ts, ctx, type_mgr);
         
         ts.step();
         
@@ -61,10 +103,10 @@ namespace core {
         return ret;
     }
     
-    static up<ast_expression> parse_paren_expr(token_stream& ts) {
+    static up<ast_expression> parse_paren_expr(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         assert(ts.type() == tok_t::paren_open);
         ts.step();
-        auto E = parse_expression(ts);
+        auto E = parse_expression(ts, ctx, type_mgr);
         if(!E) {
             return nullptr;
         }
@@ -78,7 +120,7 @@ namespace core {
         return E;
     }
     
-    static up<ast_expression> parse_literal(token_stream& ts) {
+    static up<ast_expression> parse_literal(token_stream& ts, llvm_ctx& ctx) {
         block_msg __bpl("parse literal");
         const auto& s = ts.current();
         int line = ts.line(), col = ts.col();
@@ -117,7 +159,7 @@ namespace core {
         return nullptr;
     }
     
-    static up<ast_expression> parse_identifier(token_stream& ts, bool not_a_call = false) {
+    static up<ast_expression> parse_identifier(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr, bool not_a_call = false) {
         assert(ts.type() == tok_t::identifier);
         
         int line = ts.line(), col = ts.col();
@@ -140,7 +182,7 @@ namespace core {
             ret->identifier = std::move(id);
             ret->line = line; ret->col = col;
             ts.step();
-            ret->type = ts.current();
+            ret->type = parse_atom_type(ts, ctx, type_mgr);
             ts.step();
             return ret;
         } else if(ts.type() == tok_t::paren_open && !not_a_call) {
@@ -150,7 +192,7 @@ namespace core {
             ret->line = line; ret->col = col;
             ts.step(); // Eat paren open
             while(ts.type() != tok_t::paren_close) {
-                auto arg = parse_expression(ts);
+                auto arg = parse_expression(ts, ctx, type_mgr);
                 ret->args.push_back(std::move(arg));
                 if(ts.current() == ",") {
                     ts.step();
@@ -163,15 +205,15 @@ namespace core {
         }
     }
     
-    static up<ast_expression> parse_primary(token_stream& ts) {
+    static up<ast_expression> parse_primary(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         block_msg __bpp("parse primary");
         switch(ts.type()) {
             case tok_t::identifier:
-            return parse_identifier(ts);
+            return parse_identifier(ts, ctx, type_mgr);
             case tok_t::literal:
-            return parse_literal(ts);
+            return parse_literal(ts, ctx);
             case tok_t::paren_open:
-            return parse_paren_expr(ts);
+            return parse_paren_expr(ts, ctx, type_mgr);
             default:
             log_err(ts, "Unknown token '%s' of type %d\n",ts.current().c_str(), (int)ts.type());
             break;
@@ -179,7 +221,7 @@ namespace core {
         return nullptr;
     }
     
-    static up<ast_expression> parse_binary_operation_rhs(token_stream& ts, int expr_prec, up<ast_expression> lhs) {
+    static up<ast_expression> parse_binary_operation_rhs(token_stream& ts, llvm_ctx& ctx, int expr_prec, up<ast_expression> lhs, type_manager& type_mgr) {
         block_msg __bpbor("parse binary operation rhs");
         while(1) {
             int line = ts.line(), col = ts.col();
@@ -191,7 +233,7 @@ namespace core {
             
             ts.step();
             
-            auto rhs = parse_primary(ts);
+            auto rhs = parse_primary(ts, ctx, type_mgr);
             if(!rhs) {
                 log_err(ts, "Expected right hand side of operation\n");
                 return nullptr;
@@ -200,7 +242,7 @@ namespace core {
             int next_prec = operator_precedence(ts.current()[0]);
             if(tok_prec < next_prec) {
                 block_msg __bpborr("parse binary operation rhs recurse");
-                rhs = parse_binary_operation_rhs(ts, tok_prec + 1, std::move(rhs));
+                rhs = parse_binary_operation_rhs(ts, ctx, tok_prec + 1, std::move(rhs), type_mgr);
                 if(!rhs) {
                     return nullptr;
                 }
@@ -212,18 +254,18 @@ namespace core {
         }
     }
     
-    static up<ast_expression> parse_expression(token_stream& ts) {
+    static up<ast_expression> parse_expression(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         block_msg __bpe("parse expression");
         if(ts.type() == tok_t::cif) { // branching
             block_msg __bpeif("parsing branching");
             ts.step();
-            auto cond = parse_paren_expr(ts);
+            auto cond = parse_paren_expr(ts, ctx, type_mgr);
             if(ts.type() != tok_t::cthen) {
                 log_err(ts, "Expected 'then' after condition in branching, got %d\n", (int)ts.type());
                 return nullptr;
             }
             ts.step();
-            auto line = parse_expression(ts);
+            auto line = parse_expression(ts, ctx, type_mgr);
             
             auto ret = std::make_unique<ast_branching>();
             ret->condition = std::move(cond);
@@ -231,23 +273,23 @@ namespace core {
             
             return ret;
         } else { // line
-            auto lhs = parse_primary(ts);
+            auto lhs = parse_primary(ts, ctx, type_mgr);
             if(!lhs) {
                 return nullptr;
             }
             
-            return parse_binary_operation_rhs(ts, 0, std::move(lhs));
+            return parse_binary_operation_rhs(ts, ctx, 0, std::move(lhs), type_mgr);
         }
     }
     
-    static up<ast_expression> parse_line(token_stream& ts) {
-        auto ret = parse_expression(ts);
+    static up<ast_expression> parse_line(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
+        auto ret = parse_expression(ts, ctx, type_mgr);
         assert(ts.type() == tok_t::semicolon);
         ts.step(); // Eat semicolon
         return ret;
     }
     
-    static up<ast_prototype> parse_prototype(token_stream& ts) {
+    static up<ast_prototype> parse_prototype(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         up<ast_prototype> ret;
         up<ast_expression> name;
         std::vector<ast_declaration> args;
@@ -260,7 +302,12 @@ namespace core {
             ts.step(); // Eat pure
         }
         
-        name = parse_identifier(ts, true);
+        if(ts.type() != tok_t::identifier) {
+            log_err(ts, "Expected identifier in function prototype, got %d\n", (int)ts.type());
+            return nullptr;
+        }
+        
+        name = parse_identifier(ts, ctx, type_mgr, true);
         
         if(ts.type() != tok_t::paren_open) {
             log_err(ts, "Expected opening parentheses in function prototype, got %d\n", (int)ts.type());
@@ -270,7 +317,7 @@ namespace core {
         ts.step(); // Eat opening paren
         
         while(ts.type() != tok_t::paren_close) {
-            args.push_back(std::move(parse_declaration(ts)));
+            args.push_back(std::move(parse_declaration(ts, ctx, type_mgr)));
             if(ts.type() == tok_t::unknown) {
                 ts.step(); // Eat comma
             }
@@ -305,7 +352,7 @@ namespace core {
         return ret;
     }
     
-    static up<ast_expression> parse_function(token_stream& ts) {
+    static up<ast_expression> parse_function(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         tok_t type;
         up<ast_function> ret;
         up<ast_prototype> proto;
@@ -316,7 +363,7 @@ namespace core {
         
         ts.step(); // Eat 'fn'
         
-        proto = parse_prototype(ts);
+        proto = parse_prototype(ts, ctx, type_mgr);
         
         if(ts.type() != tok_t::curly_open) {
             log_err(ts, "Expected opening curly braces\n");
@@ -326,7 +373,7 @@ namespace core {
         ts.step(); // Eat curly open
         
         while(ts.type() != tok_t::curly_close) {
-            lines.push_back(std::move(parse_line(ts)));
+            lines.push_back(std::move(parse_line(ts, ctx, type_mgr)));
         }
         
         if(ts.type() != tok_t::curly_close) {
@@ -344,27 +391,30 @@ namespace core {
         return ret;
     }
     
-    static up<ast_expression> parse_extern(token_stream& ts) {
+    static up<ast_expression> parse_extern(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         assert(ts.type() == tok_t::ext);
         
         ts.step(); // Eat extern
         
-        auto ret = parse_prototype(ts);
+        auto ret = parse_prototype(ts, ctx, type_mgr);
         
         ts.step(); // eat semicolon
         
         return ret;
     }
     
-    up<ast_expression> parse(token_stream& ts) {
+    up<ast_expression> parse(token_stream& ts, llvm_ctx& ctx, type_manager& type_mgr) {
         up<ast_expression> ret;
         
         switch(ts.type()) {
             case tok_t::fn:
-            ret = parse_function(ts);
+            ret = parse_function(ts, ctx, type_mgr);
             break;
             case tok_t::ext:
-            ret = parse_extern(ts);
+            ret = parse_extern(ts, ctx, type_mgr);
+            break;
+            case tok_t::type:
+            ret = parse_typedef(ts, ctx, type_mgr);
             break;
             default:
             log_err(ts, "Unknown top level expression\n");

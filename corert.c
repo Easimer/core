@@ -31,3 +31,10 @@ int land(int l, int r) {
 int main(int argc, char** argv) {
 	return Main() ? 0 : -1;
 }
+
+double idx(double* arr, int i) {
+    if(!arr) {
+        fprintf(stderr, "NULL PTR PASSED, HELP M");
+    }
+    return arr[i];
+}

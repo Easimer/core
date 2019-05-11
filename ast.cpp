@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include <cstdio>
 #include <cstring>
 
@@ -22,7 +23,7 @@ namespace core {
     void ast_declaration::dump() {
         printf("declaration(");
         identifier->dump();
-        printf(" : %s)", type.c_str());
+        printf(" : %s)", type->get_type_name().c_str());
     }
     
     void ast_prototype::dump() {
@@ -69,11 +70,20 @@ namespace core {
         condition->dump(); printf(" -> "); line->dump(); printf(")");
     }
     
+    void ast_type::dump() {
+        printf("type(%s)", pType->get_type_name().c_str());
+    }
+    
     // Codegen
     
     static llvm::AllocaInst* create_entry_block_alloca(llvm_ctx& ctx, llvm::Function* pFunc, const llvm::StringRef name, llvm::Type* pType) {
         IRBuilder<> TmpB(&pFunc->getEntryBlock(), pFunc->getEntryBlock().begin());
         return TmpB.CreateAlloca(pType, 0, name);
+    }
+    
+    static llvm::AllocaInst* create_entry_block_alloca(llvm_ctx& ctx, llvm::Function* pFunc, const llvm::StringRef name, llvm::Type* pType, llvm::Value* len) {
+        IRBuilder<> TmpB(&pFunc->getEntryBlock(), pFunc->getEntryBlock().begin());
+        return TmpB.CreateAlloca(pType, len, name);
     }
     
     static llvm::Type* str_to_type(llvm_ctx& ctx, const std::string& s) {
@@ -230,10 +240,15 @@ namespace core {
         return ret;
     }
     
-    // TODO:
     llvm::Value* ast_declaration::generate_ir(llvm_ctx& ctx) {
+        llvm::AllocaInst* ret = nullptr;
         auto pFunc = ctx.builder.GetInsertBlock()->getParent();
-        auto ret = create_entry_block_alloca(ctx, pFunc, identifier->name, str_to_type(ctx, type));
+        if(type->count() > 1) {
+            auto len = ConstantInt::get(ctx.ctx, APInt(64, type->count()));
+            ret = create_entry_block_alloca(ctx, pFunc, identifier->name, type->get_llvm_type(ctx), len);
+        } else {
+            ret = create_entry_block_alloca(ctx, pFunc, identifier->name, type->get_llvm_type(ctx));
+        }
         ctx.locals.emplace(identifier->name, ret);
         return ret;
     }
@@ -251,6 +266,76 @@ namespace core {
                 ret = ctx.builder.CreateRetVoid();
             } else {
                 log_err(this, "Aggregate return is not allowed!\n");
+            }
+            return ret;
+        } else if(strcmp(name->name, "idx") == 0) {
+            auto n_args = args.size();
+            if(n_args == 2) {
+                auto array = args[0]->generate_ir(ctx);
+                auto index = args[1]->generate_ir(ctx);
+                if(!array->getType()->isArrayTy()) {
+                    log_err(args[0].get(), "Not an array!\n");
+                } else if(!index->getType()->isIntegerTy()) {
+                    log_err(args[1].get(), "Not an integer!\n");
+                } else {
+                    auto pTyArray = (llvm::ArrayType*)array->getType();
+                    // If the index can be casted to an ast_literal then do a bounds check
+                    auto pIdxLiteral = dynamic_cast<ast_literal*>(args[1].get());
+                    if(pIdxLiteral) {
+                        if(!pIdxLiteral->is_int) {
+                            log_err(pIdxLiteral, "Index must be an integer!\n");
+                            return ret;
+                        }
+                        int i = std::stoi(pIdxLiteral->value);
+                        uint64_t n = pTyArray->getNumElements();
+                        if(i < 0 || (i > n && i != (uint64_t)-1)) {
+                            log_warn(pIdxLiteral, "Indexing out of bounds; array length is %u, index is %u\n", n, i);
+                        }
+                    }
+                    
+                    auto pTyElem = pTyArray->getElementType();
+                    auto array_ptr = ctx.builder.CreatePointerCast(array, array->getType()->getPointerTo());
+                    ret = ctx.builder.CreateGEP(array_ptr, index);
+                    ret = ctx.builder.CreateLoad(pTyElem, ret);
+                }
+            } else if(n_args == 3) {
+                auto array = args[0]->generate_ir(ctx);
+                auto index = args[1]->generate_ir(ctx);
+                auto value = args[2]->generate_ir(ctx);
+                if(!array->getType()->isArrayTy()) {
+                    log_err(args[0].get(), "Not an array!\n");
+                    return ret;
+                }
+                if(!index->getType()->isIntegerTy()) {
+                    log_err(args[1].get(), "Not an integer!\n");
+                    return ret;
+                }
+                auto pTyArray = (llvm::ArrayType*)array->getType();
+                // If the index can be casted to an ast_literal then do a bounds check
+                auto pIdxLiteral = dynamic_cast<ast_literal*>(args[1].get());
+                if(pIdxLiteral) {
+                    if(!pIdxLiteral->is_int) {
+                        log_err(pIdxLiteral, "Index must be an integer!\n");
+                        return ret;
+                    }
+                    uint64_t i = std::stoi(pIdxLiteral->value);
+                    uint64_t n = pTyArray->getNumElements();
+                    if(i < 0 || (i > n && i != (uint64_t)-1)) {
+                        // NOTE: we could issue a warning only then let it crash tbh
+                        log_warn(pIdxLiteral, "Indexing out of bounds; array length is %u, index is %u\n", n, i);
+                    }
+                }
+                auto pTyElem = ((llvm::ArrayType*)array->getType())->getElementType();
+                auto pTyVal = value->getType();
+                if(pTyElem != pTyVal) {
+                    log_err(args[2].get(), "Value needs to have the same type that's contained in the array!\n\tPassed: %s Contained: %s\n", type_to_str(pTyVal).c_str(), type_to_str(pTyElem).c_str());
+                    return ret;
+                }
+                auto array_ptr = ctx.builder.CreatePointerCast(array, array->getType()->getPointerTo());
+                ret = ctx.builder.CreateGEP(array_ptr, index);
+                ret = ctx.builder.CreateStore(value, ret);
+            } else {
+                log_err(this, "Indexing operation requires two arguments: the array indexed and the index\n");
             }
             return ret;
         } else {
@@ -282,6 +367,21 @@ namespace core {
                         // Convert R to double
                         log_warn(args[iArg].get(), "Implicitly converting integer to real!\n");
                         pVArg = ctx.builder.CreateSIToFP(pVArg, pTyArg);
+                    } else if(pTyArg->isArrayTy() && pTyVArg->isArrayTy()) {
+                        auto pTyArgArr = static_cast<llvm::ArrayType*>(pTyArg);
+                        auto pTyVArgArr = static_cast<llvm::ArrayType*>(pTyVArg);
+                        if(pTyArgArr->getElementType() != pTyVArgArr->getElementType()) {
+                            auto sf = type_to_str(pTyArgArr->getElementType());
+                            auto sp = type_to_str(pTyVArgArr->getElementType());
+                            log_err(this, "Type mismatch in function call: argument %i of %s expect an array of type %s, but was passed a(n) array of %s\n", iArg, name->name, sf.c_str(), sp.c_str());
+                            return ret;
+                        }
+                        if(pTyArgArr->getNumElements() != -1) {
+                            if(pTyArgArr->getNumElements() > pTyVArgArr->getNumElements()) {
+                                log_err(this, "Argument %i of %s expects an array of minimum length %d, but was passed one with length %d\n", iArg, name->name, pTyArgArr->getNumElements(), pTyVArgArr->getNumElements());
+                                return ret;
+                            }
+                        }
                     } else {
                         auto sf = type_to_str(pTyArg);
                         auto sp = type_to_str(pTyVArg);
@@ -313,14 +413,14 @@ namespace core {
         di_type_signature.push_back(ctx.di_types[type->name]);
         
         for(auto& arg : args) {
-            auto pType = str_to_type(ctx, arg.type);
+            auto pType = arg.type;
             if(!pType) {
-                log_err(this, "Unknown type '%s' in function type signature\n", arg.type.c_str());
+                log_err(this, "Unknown type '%s' in function type signature\n", arg.type->get_type_name().c_str());
                 return nullptr;
             }
-            type_signature.push_back(pType);
-            if(ctx.di_types.count(arg.type)) {
-                di_type_signature.push_back(ctx.di_types[arg.type]);
+            type_signature.push_back(pType->get_llvm_type(ctx));
+            if(ctx.di_types.count(arg.type->get_type_name())) {
+                di_type_signature.push_back(ctx.di_types[arg.type->get_type_name()]);
             } else {
                 di_type_signature.push_back(ctx.di_types["_unknown"]);
             }
@@ -403,7 +503,8 @@ namespace core {
             ctx.builder.CreateStore(&arg, stackvar);
             ctx.locals.emplace(arg.getName(), stackvar);
             
-            auto type_name = prototype->args[iArg].type;
+            //auto type_name = prototype->args[iArg].type;
+            auto type_name = prototype->args[iArg].type->get_type_name();
             
             DILocalVariable *D = ctx.dbuilder.createParameterVariable(SP, arg.getName(), ++iArg, pUnit, line, ctx.di_types[type_name], true);
             ctx.dbuilder.insertDeclare(stackvar, D, ctx.dbuilder.createExpression(), llvm::DebugLoc::get(line, 0, SP), ctx.builder.GetInsertBlock());
@@ -469,5 +570,9 @@ namespace core {
         ctx.builder.SetInsertPoint(pBBElse);
         //PHINode* pPhi = ctx.builder.CreatePHI(Type::getVoidTy(ctx.ctx), 0);
         return br;
+    }
+    
+    llvm::Value* ast_type::generate_ir(llvm_ctx& ctx) {
+        return nullptr;
     }
 }

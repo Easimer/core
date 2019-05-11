@@ -1,14 +1,11 @@
 #include runtime.cor
 
-fn pure fib(n : real) : real {
-	if(n ? 0.0) then return(0.0);
-	if(n ? 1.0) then return(1.0);
-	return(fib(n - 2.0) + fib(n - 1.0));
-}
-
 fn Main() : bool {
-	conv_test : real = 1;
-	print(fib(10.0));
+	arr : real[10];
+	idx(arr, 0, 10.0);
+	idx(arr, 11, 11.0);
+	print(idx(arr, 1));
+
 	return(true);
 }
 

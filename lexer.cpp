@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #include <cstdio>
 #include <cstring>
 #include "types.h"
@@ -21,14 +22,14 @@ namespace core {
         }
         
         if(!is_eof(f)) {
-            if(!isalnum(c) && c != '_') {
+            if(!isalnum(c) && c != '_' && c != '[' && c != ']') {
                 buf[0] = c;
                 buf[1] = 0;
                 f.last_char = ' ';
                 return std::string(buf);
             }
             
-            while(c != ' ' && buf_len < 4095 && (isalnum(c) || c == '.' || c == '_')) {
+            while(c != ' ' && buf_len < 4095 && (isalnum(c) || c == '.' || c == '_' || c == '[' || c == ']')) {
                 buf[buf_len++] = c;
                 c = fgetc(f.fd);
                 f.col++;
@@ -199,6 +200,10 @@ namespace core {
             return {tok_t::cthen, s};
         } else if(s == "pure") {
             return {tok_t::pure, s};
+        } else if(s == "type") {
+            return {tok_t::type, s};
+        } else if(s == "from") {
+            return {tok_t::from, s};
         } else {
             if(is_literal(s)) {
                 return {tok_t::literal, s};
